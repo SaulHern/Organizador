@@ -3,336 +3,543 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Año de 12 Semanas</title>
+    <title>Mi Planificador Anual por Bloques</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <style>
         /* --- ESTILOS CSS --- */
+        :root {
+            --color-completada: #2ecc71;
+            --color-en-progreso: #3498db;
+            --color-tarde: #f39c12;
+            --color-no-terminada: #e74c3c;
+            --color-alta-prioridad: #c0392b;
+            --color-media-prioridad: #d35400;
+            
+            --color-bloque-1: #1abc9c;
+            --color-bloque-2: #3498db;
+            --color-bloque-3: #9b59b6;
+            --color-bloque-4: #e67e22;
+        }
         
-        /* Estilos Generales */
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f4f7f9;
-            color: #333;
+            background-color: #ecf0f1;
+            color: #34495e;
             margin: 0;
-            padding: 20px;
-            line-height: 1.6;
+            padding: 15px;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
         header, footer {
             text-align: center;
-            margin-bottom: 20px;
-        }
-
-        h1 {
+            margin-bottom: 25px;
             color: #2c3e50;
         }
 
-        /* Contenedor Principal */
-        main {
-            max-width: 1200px;
-            margin: 0 auto;
+        /* --- Estructura de Bloques Desplegables --- */
+        .block-accordion .block-header {
+            background-color: #34495e;
+            color: white;
+            padding: 15px 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+        .block-accordion .block-header:hover {
+            background-color: #2c3e50;
+        }
+        .block-accordion .block-header.active {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .block-accordion .block-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .block-accordion .block-header .arrow {
+            font-size: 1.5em;
+            transition: transform 0.3s;
+        }
+        .block-accordion .block-header.active .arrow {
+            transform: rotate(90deg);
         }
 
-        /* Cuadrícula de Semanas */
+        /* Asignar colores a cada bloque */
+        .block-accordion .block-header[data-block-index="0"] { background-color: var(--color-bloque-1); }
+        .block-accordion .block-header[data-block-index="1"] { background-color: var(--color-bloque-2); }
+        .block-accordion .block-header[data-block-index="2"] { background-color: var(--color-bloque-3); }
+        .block-accordion .block-header[data-block-index="3"] { background-color: var(--color-bloque-4); }
+
         .weeks-grid {
-            display: grid;
+            display: none; /* Oculto por defecto */
+            padding: 20px;
+            background: #fff;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
         }
-
+        .weeks-grid.active {
+            display: grid;
+        }
         .week-card {
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: #fdfdfd;
+            border-radius: 8px;
+            border: 1px solid #eee;
             padding: 20px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            border-left: 5px solid #3498db;
         }
-
         .week-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
 
-        .week-card h3 {
-            margin-top: 0;
-            color: #3498db;
-        }
-
-        .week-card p {
-            font-size: 0.9em;
-            color: #7f8c8d;
-        }
-
-        /* Vista Detallada de los Días */
+        /* --- Vista Diaria --- */
         .days-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
         }
-
         .day-card {
             background: #fff;
             border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
         }
-
         .day-card h4 {
-            margin-top: 0;
-            color: #2c3e50;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
             border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 5px;
         }
-
-        textarea {
-            width: 100%;
-            min-height: 150px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            font-family: inherit;
-            font-size: 0.95em;
-            box-sizing: border-box; /* Asegura que el padding no afecte el ancho total */
+        .tasks-container {
+            flex-grow: 1; /* Ocupa el espacio disponible */
+            min-height: 200px;
         }
-        
-        /* Estilos del objetivo semanal */
-        .weekly-objective {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-        }
-
-        .weekly-objective label {
-            display: block;
-            font-weight: bold;
+        .task-item {
+            padding: 12px;
             margin-bottom: 10px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
+        .task-item .task-time {
+            font-weight: 700;
+            margin-right: 10px;
+        }
+        .task-item .task-desc {
+            flex-grow: 1;
+        }
+        .task-item .task-actions button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.1em;
+        }
+        .task-priority {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            color: white;
+        }
+        .task-priority.alta { background-color: var(--color-alta-prioridad); }
+        .task-priority.media { background-color: var(--color-media-prioridad); }
+        .task-priority.baja { background-color: #27ae60; }
 
-        .weekly-objective input {
+
+        /* Colores de estado de tareas */
+        .status-completada { background-color: var(--color-completada); }
+        .status-en-progreso { background-color: var(--color-en-progreso); }
+        .status-no-terminada-tiempo { background-color: var(--color-tarde); }
+        .status-no-terminada { background-color: var(--color-no-terminada); }
+
+        /* --- Modal para Añadir/Editar Tarea --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .modal-content h3 { margin-top: 0; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
             box-sizing: border-box;
         }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
 
-        /* Botones */
+        /* --- Botones y utilidades --- */
         button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
+            padding: 10px 18px;
             border-radius: 5px;
+            border: none;
             cursor: pointer;
-            font-size: 1em;
             font-weight: bold;
-            transition: background-color 0.2s;
-            display: block;
-            margin: 20px auto 0 auto;
+            font-size: 1em;
+            transition: opacity 0.2s;
         }
+        button:hover { opacity: 0.85; }
 
-        button:hover {
-            background-color: #2980b9;
-        }
+        .btn-primary { background-color: #2980b9; color: white; }
+        .btn-secondary { background-color: #7f8c8d; color: white; }
+        .btn-danger { background-color: var(--color-no-terminada); color: white; }
+        .btn-add-task { background-color: #27ae60; color: white; width: 100%; margin-top: 15px; }
 
-        #back-to-weeks-btn {
-            background-color: #95a5a6;
-            margin: 0 0 20px 0;
-        }
-
-        #back-to-weeks-btn:hover {
-            background-color: #7f8c8d;
-        }
-
-        /* Utilidades */
-        .hidden {
-            display: none;
-        }
-
-        /* Diseño Responsivo para Teléfonos */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .weeks-grid, .days-grid {
-                grid-template-columns: 1fr; /* Una sola columna en pantallas pequeñas */
-            }
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Mi Planificador de 12 Semanas 🗓️</h1>
-        <p>Define tus metas, organiza tus días y conquista tu año.</p>
+        <h1>Mi Planificador Anual</h1>
+        <p>Organiza tu año en 4 bloques de 12 semanas.</p>
     </header>
 
     <main>
-        <div id="weeks-view">
-            <div id="weeks-container" class="weeks-grid">
+        <div id="blocks-view">
+            <div id="blocks-container" class="block-accordion">
                 </div>
         </div>
 
         <div id="daily-view" class="hidden">
-            <button id="back-to-weeks-btn">← Volver a las Semanas</button>
+            <button id="back-to-blocks-btn" class="btn-secondary">← Volver</button>
             <h2 id="daily-view-title"></h2>
-            <div class="weekly-objective">
-                <label for="weekly-objective-input">🎯 Objetivo de la Semana:</label>
-                <input type="text" id="weekly-objective-input" placeholder="Define tu meta principal para esta semana...">
-            </div>
-            <div id="days-container" class="days-grid">
+            <div class="days-grid" id="days-container">
                 </div>
-            <button id="save-week-btn">Guardar Cambios de la Semana</button>
         </div>
     </main>
 
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Añadir Tarea</h3>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                <div class="form-group">
+                    <label for="task-time">Hora</label>
+                    <input type="time" id="task-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-desc">Descripción</label>
+                    <input type="text" id="task-desc" placeholder="¿Qué necesitas hacer?" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-priority">Prioridad</label>
+                    <select id="task-priority">
+                        <option value="baja">Baja</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="task-status">Estado</label>
+                    <select id="task-status">
+                        <option value="en-progreso">En Progreso</option>
+                        <option value="completada">Completada</option>
+                        <option value="no-terminada-tiempo">No Terminada a Tiempo</option>
+                        <option value="no-terminada">No Terminada</option>
+                    </select>
+                </div>
+            </form>
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn-secondary">Cancelar</button>
+                <button id="modal-save-btn" class="btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <footer>
-        <p>Hecho con ❤️ para la planificación personal.</p>
+        <p>Planifica con intención, ejecuta con propósito.</p>
     </footer>
 
     <script>
-        // --- LÓGICA JAVASCRIPT ---
+    document.addEventListener('DOMContentLoaded', () => {
 
-        // Se asegura de que el script se ejecute solo después de que toda la página HTML se haya cargado.
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- ELEMENTOS DEL DOM ---
+        const blocksView = document.getElementById('blocks-view');
+        const dailyView = document.getElementById('daily-view');
+        const blocksContainer = document.getElementById('blocks-container');
+        const daysContainer = document.getElementById('days-container');
+        const dailyViewTitle = document.getElementById('daily-view-title');
+        const backToBlocksBtn = document.getElementById('back-to-blocks-btn');
+        
+        // Modal de Tareas
+        const taskModal = document.getElementById('task-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const taskForm = document.getElementById('task-form');
+        const taskIdInput = document.getElementById('task-id');
+        const taskTimeInput = document.getElementById('task-time');
+        const taskDescInput = document.getElementById('task-desc');
+        const taskPriorityInput = document.getElementById('task-priority');
+        const taskStatusInput = document.getElementById('task-status');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
 
-            // Referencias a los elementos del DOM que usaremos
-            const weeksView = document.getElementById('weeks-view');
-            const dailyView = document.getElementById('daily-view');
-            const weeksContainer = document.getElementById('weeks-container');
-            const daysContainer = document.getElementById('days-container');
-            const dailyViewTitle = document.getElementById('daily-view-title');
-            const weeklyObjectiveInput = document.getElementById('weekly-objective-input');
-            
-            const backToWeeksBtn = document.getElementById('back-to-weeks-btn');
-            const saveWeekBtn = document.getElementById('save-week-btn');
+        // --- ESTADO DE LA APLICACIÓN ---
+        let plannerData = [];
+        let currentTaskInfo = {}; // {blockIdx, weekIdx, dayName, taskId}
 
-            let currentWeekIndex = null; // Para saber qué semana estamos editando
-            let plannerData = []; // Aquí guardaremos todos los datos
+        const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-            const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
-            // --- FUNCIONES DE MANEJO DE DATOS ---
-
-            // Carga los datos desde localStorage o crea datos iniciales si no existen
-            function loadData() {
-                const savedData = localStorage.getItem('12WeekPlanner');
-                if (savedData) {
-                    plannerData = JSON.parse(savedData);
-                } else {
-                    // Si no hay datos, creamos la estructura para 12 semanas
-                    plannerData = Array.from({ length: 12 }, (_, i) => ({
-                        week: i + 1,
+        // --- MANEJO DE DATOS ---
+        function loadData() {
+            const savedData = localStorage.getItem('annualPlanner');
+            if (savedData) {
+                plannerData = JSON.parse(savedData);
+            } else {
+                // Estructura para 4 bloques de 12 semanas cada uno
+                plannerData = Array.from({ length: 4 }, (_, blockIdx) => ({
+                    name: `Bloque ${blockIdx + 1}`,
+                    weeks: Array.from({ length: 12 }, (_, weekIdx) => ({
+                        week: weekIdx + 1,
                         objective: '',
-                        days: weekDays.map(day => ({ dayName: day, tasks: '' }))
-                    }));
-                }
+                        days: weekDays.map(day => ({ 
+                            dayName: day, 
+                            tasks: [] // Las tareas ahora son un array de objetos
+                        }))
+                    }))
+                }));
             }
+        }
 
-            // Guarda los datos actuales en localStorage
-            function saveData() {
-                localStorage.setItem('12WeekPlanner', JSON.stringify(plannerData));
-                alert('¡Progreso guardado con éxito!');
-            }
+        function saveData() {
+            localStorage.setItem('annualPlanner', JSON.stringify(plannerData));
+        }
 
-            // --- FUNCIONES DE RENDERIZADO (DIBUJAR EN PANTALLA) ---
+        // --- LÓGICA DE RENDERIZADO ---
 
-            // Dibuja las 12 tarjetas de las semanas en la vista principal
-            function renderWeeks() {
-                weeksContainer.innerHTML = ''; // Limpiamos el contenedor
-                plannerData.forEach((weekData, index) => {
+        function renderBlocks() {
+            blocksContainer.innerHTML = '';
+            plannerData.forEach((block, blockIdx) => {
+                const blockHeader = document.createElement('div');
+                blockHeader.className = 'block-header';
+                blockHeader.dataset.blockIndex = blockIdx;
+                blockHeader.innerHTML = `<h2>${block.name}</h2> <span class="arrow">▶</span>`;
+
+                const weeksGrid = document.createElement('div');
+                weeksGrid.className = 'weeks-grid';
+                weeksGrid.id = `weeks-grid-${blockIdx}`;
+
+                block.weeks.forEach((week, weekIdx) => {
                     const weekCard = document.createElement('div');
                     weekCard.className = 'week-card';
-                    // Asignamos un bloque visual (1, 2, 3, 4) para el concepto de 4 bloques
-                    const block = Math.floor(index / 3) + 1;
-                    weekCard.innerHTML = `
-                        <h3>Semana ${weekData.week} (Bloque ${block})</h3>
-                        <p><strong>Objetivo:</strong> ${weekData.objective || 'Aún no definido'}</p>
-                    `;
-                    // Añadimos un evento para que al hacer clic, se muestre la vista diaria
-                    weekCard.addEventListener('click', () => showDailyView(index));
-                    weeksContainer.appendChild(weekCard);
+                    weekCard.innerHTML = `<h3>Semana ${week.week}</h3>`;
+                    weekCard.addEventListener('click', () => showDailyView(blockIdx, weekIdx));
+                    weeksGrid.appendChild(weekCard);
                 });
-            }
 
-            // Muestra la vista detallada para una semana específica
-            function showDailyView(weekIndex) {
-                currentWeekIndex = weekIndex;
-                const weekData = plannerData[weekIndex];
+                blocksContainer.appendChild(blockHeader);
+                blocksContainer.appendChild(weeksGrid);
+            });
+            addAccordionListeners();
+        }
 
-                // Actualizamos la interfaz
-                dailyViewTitle.textContent = `Detalles de la Semana ${weekData.week}`;
-                weeklyObjectiveInput.value = weekData.objective;
+        function showDailyView(blockIdx, weekIdx) {
+            const weekData = plannerData[blockIdx].weeks[weekIdx];
+            dailyViewTitle.textContent = `Bloque ${blockIdx + 1} - Semana ${weekData.week}`;
+            daysContainer.innerHTML = '';
+
+            weekData.days.forEach(day => {
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
                 
-                daysContainer.innerHTML = ''; // Limpiamos el contenedor de días
-                weekData.days.forEach(dayData => {
-                    const dayCard = document.createElement('div');
-                    dayCard.className = 'day-card';
-                    dayCard.innerHTML = `
-                        <h4>${dayData.dayName}</h4>
-                        <textarea data-day="${dayData.dayName}" placeholder="Anota tus tareas y planes para este día...">${dayData.tasks}</textarea>
+                const tasksHtmlContainer = document.createElement('div');
+                tasksHtmlContainer.className = 'tasks-container';
+                
+                // Ordenar tareas por hora
+                day.tasks.sort((a, b) => a.time.localeCompare(b.time));
+
+                day.tasks.forEach(task => {
+                    const priorityClass = task.priority || 'baja';
+                    tasksHtmlContainer.innerHTML += `
+                        <div class="task-item status-${task.status}">
+                            <div>
+                                <span class="task-time">${task.time}</span>
+                                <span class="task-desc">${task.description}</span>
+                            </div>
+                            <div>
+                                <span class="task-priority ${priorityClass}">${task.priority.toUpperCase()}</span>
+                                <span class="task-actions">
+                                    <button onclick="window.app.openTaskModal(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">✏️</button>
+                                    <button onclick="window.app.deleteTask(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">🗑️</button>
+                                </span>
+                            </div>
+                        </div>
                     `;
-                    daysContainer.appendChild(dayCard);
                 });
 
-                // Ocultamos la vista de semanas y mostramos la vista diaria
-                weeksView.classList.add('hidden');
-                dailyView.classList.remove('hidden');
-            }
+                dayCard.innerHTML = `<h4>${day.dayName}</h4>`;
+                dayCard.appendChild(tasksHtmlContainer);
+                
+                const addTaskBtn = document.createElement('button');
+                addTaskBtn.textContent = 'Añadir Tarea +';
+                addTaskBtn.className = 'btn-add-task';
+                addTaskBtn.onclick = () => openTaskModal(blockIdx, weekIdx, day.dayName);
+                dayCard.appendChild(addTaskBtn);
 
-            // Oculta la vista diaria y vuelve a la vista de semanas
-            function showWeeksView() {
-                dailyView.classList.add('hidden');
-                weeksView.classList.remove('hidden');
-                // Volvemos a renderizar las semanas por si se actualizó un objetivo
-                renderWeeks();
-            }
-
-            // --- MANEJADORES DE EVENTOS ---
-            
-            // Botón para volver a la vista de semanas
-            backToWeeksBtn.addEventListener('click', showWeeksView);
-
-            // Botón para guardar los cambios de una semana
-            saveWeekBtn.addEventListener('click', () => {
-                if (currentWeekIndex === null) return;
-
-                // Guardar el objetivo de la semana
-                plannerData[currentWeekIndex].objective = weeklyObjectiveInput.value;
-
-                // Guardar las tareas de cada día
-                const textareas = daysContainer.querySelectorAll('textarea');
-                textareas.forEach(textarea => {
-                    const dayName = textarea.getAttribute('data-day');
-                    const dayToUpdate = plannerData[currentWeekIndex].days.find(d => d.dayName === dayName);
-                    if (dayToUpdate) {
-                        dayToUpdate.tasks = textarea.value;
-                    }
-                });
-
-                saveData(); // Guardar todo en localStorage
-                showWeeksView(); // Volver a la vista principal
+                daysContainer.appendChild(dayCard);
             });
 
+            blocksView.classList.add('hidden');
+            dailyView.classList.remove('hidden');
+        }
 
-            // --- INICIALIZACIÓN ---
-            function init() {
-                loadData();
-                renderWeeks();
+        // --- LÓGICA DE TAREAS (CRUD) ---
+
+        function openTaskModal(blockIdx, weekIdx, dayName, taskId = null) {
+            currentTaskInfo = { blockIdx, weekIdx, dayName, taskId };
+            taskForm.reset();
+
+            if (taskId) { // Editando una tarea existente
+                modalTitle.textContent = 'Editar Tarea';
+                const task = plannerData[blockIdx].weeks[weekIdx].days
+                    .find(d => d.dayName === dayName).tasks.find(t => t.id === taskId);
+                
+                taskIdInput.value = task.id;
+                taskTimeInput.value = task.time;
+                taskDescInput.value = task.description;
+                taskPriorityInput.value = task.priority;
+                taskStatusInput.value = task.status;
+            } else { // Creando una nueva tarea
+                modalTitle.textContent = 'Añadir Tarea';
+                taskIdInput.value = '';
+            }
+            taskModal.classList.add('active');
+        }
+
+        function closeModal() {
+            taskModal.classList.remove('active');
+        }
+
+        function saveTask() {
+            const { blockIdx, weekIdx, dayName, taskId } = currentTaskInfo;
+            const day = plannerData[blockIdx].weeks[weekIdx].days.find(d => d.dayName === dayName);
+
+            const taskData = {
+                id: taskId || `task-${Date.now()}`, // Crea un ID nuevo si no existe
+                time: taskTimeInput.value,
+                description: taskDescInput.value,
+                priority: taskPriorityInput.value,
+                status: taskStatusInput.value,
+            };
+
+            if (taskId) { // Actualizar tarea existente
+                const taskIndex = day.tasks.findIndex(t => t.id === taskId);
+                day.tasks[taskIndex] = taskData;
+            } else { // Añadir nueva tarea
+                day.tasks.push(taskData);
             }
 
-            init(); // ¡Iniciamos la aplicación!
+            saveData();
+            closeModal();
+            showDailyView(blockIdx, weekIdx); // Refrescar la vista
+        }
 
+        function deleteTask(blockIdx, weekIdx, dayName, taskId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) return;
+            
+            const day = plannerData[blockIdx].weeks[weekIdx].days.find(d => d.dayName === dayName);
+            day.tasks = day.tasks.filter(t => t.id !== taskId);
+
+            saveData();
+            showDailyView(blockIdx, weekIdx); // Refrescar la vista
+        }
+
+
+        // --- MANEJADORES DE EVENTOS ---
+
+        function addAccordionListeners() {
+            const headers = document.querySelectorAll('.block-header');
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const wasActive = header.classList.contains('active');
+                    
+                    // Cerrar todos los bloques
+                    document.querySelectorAll('.block-header').forEach(h => h.classList.remove('active'));
+                    document.querySelectorAll('.weeks-grid').forEach(g => g.classList.remove('active'));
+
+                    if (!wasActive) {
+                        // Abrir el bloque clickeado
+                        header.classList.add('active');
+                        const blockIndex = header.dataset.blockIndex;
+                        document.getElementById(`weeks-grid-${blockIndex}`).classList.add('active');
+                    }
+                });
+            });
+        }
+        
+        backToBlocksBtn.addEventListener('click', () => {
+            dailyView.classList.add('hidden');
+            blocksView.classList.remove('hidden');
         });
+
+        modalSaveBtn.addEventListener('click', saveTask);
+        modalCancelBtn.addEventListener('click', closeModal);
+        taskModal.addEventListener('click', (e) => { // Cerrar modal al hacer clic fuera
+            if (e.target === taskModal) closeModal();
+        });
+
+
+        // --- INICIALIZACIÓN ---
+        function init() {
+            // Exponer funciones al objeto window para poder llamarlas desde el HTML (onclick)
+            window.app = { openTaskModal, deleteTask };
+            loadData();
+            renderBlocks();
+        }
+
+        init();
+    });
     </script>
 </body>
 </html>
