@@ -16,7 +16,7 @@
             --header-color: #2c3e50;
             --card-bg: #ffffff;
             --card-shadow: rgba(0,0,0,0.05);
-            --border-color: #ecf0f1;
+            --border-color: #e0e0e0;
             --button-secondary-bg: #7f8c8d;
             
             --color-completada: #2ecc71;
@@ -104,7 +104,7 @@
         input:checked + .slider:before { transform: translateX(24px); }
 
         /* --- BOTONES PRINCIPALES --- */
-        .main-nav { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+        .main-nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
         button {
             padding: 10px 18px;
             border-radius: 5px;
@@ -180,8 +180,8 @@
         #all-tasks-list .task-item {
             flex-direction: column; align-items: flex-start; gap: 10px;
         }
-        .task-info { display: flex; justify-content: space-between; width: 100%; align-items: center; }
-        .task-location { font-size: 0.8em; font-weight: normal; opacity: 0.9; margin-top: 5px; }
+        .task-info { display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; }
+        .task-location { font-size: 0.8em; font-weight: normal; opacity: 0.9; margin-top: 5px; width: 100%; }
 
         /* --- MODAL --- */
         .modal {
@@ -193,10 +193,14 @@
             background: var(--card-bg); padding: 25px 30px; border-radius: 10px;
             width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
+        .modal-content h3 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
         .form-group input, .form-group select {
             width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;
             box-sizing: border-box; background-color: var(--bg-color); color: var(--text-color);
         }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
     </style>
 </head>
@@ -219,20 +223,18 @@
     </header>
 
     <main>
-        <div id="blocks-view" class="view active">
+        <div id="blocks-view" class="view">
             <div id="blocks-container" class="block-accordion"></div>
         </div>
-
         <div id="daily-view" class="view">
             <button id="back-to-blocks-btn" class="btn-secondary">← Volver a Bloques</button>
             <h2 id="daily-view-title"></h2>
             <div class="days-grid" id="days-container"></div>
         </div>
-        
         <div id="all-tasks-view" class="view">
             <h2>Todas las Tareas</h2>
             <div class="filters">
-                <button class="btn-primary filter-btn active" data-filter="todas">Todas</button>
+                <button class="btn-primary filter-btn" data-filter="todas">Todas</button>
                 <button class="btn-secondary filter-btn" data-filter="pendientes">Pendientes</button>
                 <button class="btn-secondary filter-btn" data-filter="completadas">Completadas</button>
             </div>
@@ -249,8 +251,9 @@
                 <div class="form-group"><label for="task-desc">Descripción</label><input type="text" id="task-desc" required></div>
                 <div class="form-group"><label for="task-priority">Prioridad</label><select id="task-priority"><option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option></select></div>
                 <div class="form-group"><label for="task-status">Estado</label><select id="task-status"><option value="en-progreso">En Progreso</option><option value="completada">Completada</option><option value="no-terminada-tiempo">No Terminada a Tiempo</option><option value="no-terminada">No Terminada</option></select></div>
-                <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                    <button id="modal-cancel-btn" class="btn-secondary">Cancelar</button><button id="modal-save-btn" class="btn-primary">Guardar</button>
+                <div class="modal-actions">
+                    <button type="button" id="modal-cancel-btn" class="btn-secondary">Cancelar</button>
+                    <button type="submit" id="modal-save-btn" class="btn-primary">Guardar</button>
                 </div>
             </form>
         </div>
@@ -259,44 +262,78 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        // --- ELEMENTOS DEL DOM ---
+        // --- ESTADO Y SELECTORES GLOBALES ---
         const views = document.querySelectorAll('.view');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
-        // ... (resto de selectores de elementos)
-
-        // --- ESTADO DE LA APLICACIÓN ---
+        const taskModal = document.getElementById('task-modal');
+        const taskForm = document.getElementById('task-form');
+        
         let plannerData = [];
         let currentTaskInfo = {};
+        const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
         
-        // --- LÓGICA DE NAVEGACIÓN Y VISTAS ---
+        // --- NAVEGACIÓN Y VISTAS ---
         function switchView(viewId) {
             views.forEach(view => view.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
         }
 
-        // --- LÓGICA DE MODO OSCURO ---
+        // --- MODO OSCURO ---
         function setDarkMode(isDark) {
-            if (isDark) {
-                document.body.classList.add('dark-mode');
-                darkModeToggle.checked = true;
-                localStorage.setItem('darkMode', 'enabled');
+            document.body.classList.toggle('dark-mode', isDark);
+            darkModeToggle.checked = isDark;
+            localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+        }
+        
+        // --- MANEJO DE DATOS ---
+        function loadData() {
+            const savedData = localStorage.getItem('annualPlanner');
+            if (savedData) {
+                plannerData = JSON.parse(savedData);
             } else {
-                document.body.classList.remove('dark-mode');
-                darkModeToggle.checked = false;
-                localStorage.setItem('darkMode', 'disabled');
+                plannerData = Array.from({ length: 4 }, (_, b) => ({
+                    name: `Bloque ${b + 1}`,
+                    weeks: Array.from({ length: 12 }, (_, w) => ({
+                        week: w + 1,
+                        days: weekDays.map(d => ({ dayName: d, tasks: [] }))
+                    }))
+                }));
             }
         }
-        darkModeToggle.addEventListener('change', () => setDarkMode(darkModeToggle.checked));
+        function saveData() { localStorage.setItem('annualPlanner', JSON.stringify(plannerData)); }
         
-        // --- LÓGICA DE DATOS ---
-        function loadData() { /* ... (sin cambios, la estructura ya es correcta) ... */ }
-        function saveData() { /* ... (sin cambios) ... */ }
-
-        // --- LÓGICA DE RENDERIZADO ---
+        // --- FUNCIONES DE RENDERIZADO ---
         function countIncompleteTasks(week) {
-            return week.days.reduce((count, day) => {
-                return count + day.tasks.filter(t => t.status !== 'completada').length;
-            }, 0);
+            return week.days.reduce((count, day) => count + day.tasks.filter(t => t.status !== 'completada').length, 0);
+        }
+
+        /**
+         * LA CORRECCIÓN DEFINITIVA ESTÁ AQUÍ
+         * Esta función ahora es más robusta para manejar los clics.
+         */
+        function addAccordionListeners() {
+            const headers = document.querySelectorAll('#blocks-container .block-header');
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const blockIndex = header.dataset.blockIndex;
+                    // Busca el panel de semanas por su ID único, no por su posición.
+                    const grid = document.getElementById(`weeks-grid-${blockIndex}`);
+                    
+                    if (!grid) return; // Si no lo encuentra, no hace nada.
+
+                    const wasActive = header.classList.contains('active');
+                    
+                    // Cierra todos los demás
+                    document.querySelectorAll('#blocks-container .block-header').forEach(h => h.classList.remove('active'));
+                    document.querySelectorAll('#blocks-container .weeks-grid').forEach(g => g.classList.remove('active'));
+
+                    // Si no estaba activo, lo abre
+                    if (!wasActive) {
+                        header.classList.add('active');
+                        grid.classList.add('active');
+                    }
+                });
+            });
         }
 
         function renderBlocks() {
@@ -305,21 +342,19 @@
             plannerData.forEach((block, blockIdx) => {
                 const header = document.createElement('div');
                 header.className = 'block-header';
-                header.dataset.blockIndex = blockIdx;
+                header.dataset.blockIndex = blockIdx; // Le asigna un índice para identificarlo
                 header.innerHTML = `<h2>${block.name}</h2> <span class="arrow">▶</span>`;
                 
                 const grid = document.createElement('div');
                 grid.className = 'weeks-grid';
-                grid.id = `weeks-grid-${blockIdx}`;
+                grid.id = `weeks-grid-${blockIdx}`; // Le asigna un ID único
 
                 block.weeks.forEach((week, weekIdx) => {
                     const card = document.createElement('div');
                     card.className = 'week-card';
                     const incompleteCount = countIncompleteTasks(week);
-                    card.innerHTML = `
-                        <h3>Semana ${week.week}</h3>
-                        ${incompleteCount > 0 ? `<p class="overdue-tasks">🔴 ${incompleteCount} tareas sin completar</p>` : ''}
-                    `;
+                    card.innerHTML = `<h3>Semana ${week.week}</h3>
+                        ${incompleteCount > 0 ? `<p class="overdue-tasks">🔴 ${incompleteCount} tareas sin completar</p>` : ''}`;
                     card.addEventListener('click', () => showDailyView(blockIdx, weekIdx));
                     grid.appendChild(card);
                 });
@@ -327,15 +362,15 @@
                 container.appendChild(header);
                 container.appendChild(grid);
             });
-            addAccordionListeners();
+            addAccordionListeners(); 
         }
-
+        
         function showDailyView(blockIdx, weekIdx) {
             const week = plannerData[blockIdx].weeks[weekIdx];
             document.getElementById('daily-view-title').textContent = `Bloque ${blockIdx + 1} - Semana ${week.week}`;
             const container = document.getElementById('days-container');
             container.innerHTML = '';
-
+            
             week.days.forEach(day => {
                 const card = document.createElement('div');
                 card.className = 'day-card';
@@ -343,23 +378,19 @@
                 tasksHtmlContainer.className = 'tasks-container';
                 
                 day.tasks.sort((a, b) => a.time.localeCompare(b.time));
-                day.tasks.forEach(task => {
-                    tasksHtmlContainer.innerHTML += `
-                        <div class="task-item status-${task.status}">
-                            <div style="flex-grow: 1;">
-                                <div><span class="task-time">${task.time}</span> ${task.description}</div>
-                            </div>
-                            <div style="display: flex; align-items: center;">
-                                <span class="task-priority ${task.priority}">${task.priority.toUpperCase()}</span>
-                                <span class="task-actions">
-                                    <button title="Completar" onclick="app.quickCompleteTask(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">✔️</button>
-                                    <button title="Editar" onclick="app.openTaskModal(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">✏️</button>
-                                    <button title="Eliminar" onclick="app.deleteTask(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">🗑️</button>
-                                </span>
-                            </div>
+                tasksHtmlContainer.innerHTML = day.tasks.map(task => `
+                    <div class="task-item status-${task.status}">
+                        <div style="flex-grow: 1; padding-right: 10px;">${task.time} - ${task.description}</div>
+                        <div style="display: flex; align-items: center; flex-shrink: 0;">
+                            <span class="task-priority ${task.priority}">${task.priority.toUpperCase()}</span>
+                            <span class="task-actions">
+                                <button title="Completar" onclick="app.quickCompleteTask(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">✔️</button>
+                                <button title="Editar" onclick="app.openTaskModal(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">✏️</button>
+                                <button title="Eliminar" onclick="app.deleteTask(${blockIdx}, ${weekIdx}, '${day.dayName}', '${task.id}')">🗑️</button>
+                            </span>
                         </div>
-                    `;
-                });
+                    </div>`).join('');
+                
                 card.innerHTML = `<h4>${day.dayName}</h4>`;
                 card.appendChild(tasksHtmlContainer);
                 const btn = document.createElement('button');
@@ -375,143 +406,102 @@
         function renderAllTasks(filter = 'todas') {
             const list = document.getElementById('all-tasks-list');
             list.innerHTML = '';
-            let allTasks = [];
-
-            plannerData.forEach((block, blockIdx) => {
-                block.weeks.forEach((week, weekIdx) => {
-                    week.days.forEach(day => {
-                        day.tasks.forEach(task => {
-                            allTasks.push({ ...task, blockIdx, weekIdx, dayName: day.dayName });
-                        });
-                    });
-                });
-            });
-
-            let filteredTasks = allTasks;
-            if (filter === 'pendientes') {
-                filteredTasks = allTasks.filter(t => t.status !== 'completada');
-            } else if (filter === 'completadas') {
-                filteredTasks = allTasks.filter(t => t.status === 'completada');
-            }
+            const allTasks = [];
+            plannerData.forEach((b, bIdx) => b.weeks.forEach((w, wIdx) => w.days.forEach(d => d.tasks.forEach(t => allTasks.push({ ...t, blockIdx: bIdx, weekIdx: wIdx, dayName: d.dayName })))));
             
-            filteredTasks.sort((a,b) => a.time.localeCompare(b.time)).sort((a,b) => (a.blockIdx*100 + a.weekIdx) - (b.blockIdx*100 + b.weekIdx));
-            
-            if (filteredTasks.length === 0) {
-                list.innerHTML = '<p style="text-align: center;">No hay tareas que mostrar para este filtro.</p>';
-                return;
-            }
+            const filteredTasks = allTasks.filter(t => filter === 'todas' || (filter === 'completadas' && t.status === 'completada') || (filter === 'pendientes' && t.status !== 'completada'));
+            filteredTasks.sort((a,b) => (a.blockIdx*100 + a.weekIdx) - (b.blockIdx*100 + b.weekIdx) || a.time.localeCompare(b.time));
 
-            filteredTasks.forEach(task => {
-                list.innerHTML += `
-                    <div class="task-item status-${task.status}">
-                        <div class="task-info">
-                            <div><span class="task-time">${task.time}</span> ${task.description}</div>
-                            <span class="task-priority ${task.priority}">${task.priority.toUpperCase()}</span>
-                        </div>
-                        <div class="task-location">
-                            📍 ${plannerData[task.blockIdx].name}, Semana ${plannerData[task.blockIdx].weeks[task.weekIdx].week}, ${task.dayName}
-                        </div>
+            if (filteredTasks.length === 0) { list.innerHTML = '<p style="text-align: center;">No hay tareas para este filtro.</p>'; return; }
+            list.innerHTML = filteredTasks.map(t => `
+                <div class="task-item status-${t.status}">
+                    <div class="task-info">
+                        <div><span class="task-time">${t.time}</span> ${t.description}</div>
+                        <span class="task-priority ${t.priority}">${t.priority.toUpperCase()}</span>
                     </div>
-                `;
-            });
+                    <div class="task-location">📍 ${plannerData[t.blockIdx].name}, Semana ${t.weekIdx + 1}, ${t.dayName}</div>
+                </div>`).join('');
         }
         
         // --- LÓGICA DE TAREAS (CRUD) ---
+        function openTaskModal(blockIdx, weekIdx, dayName, taskId = null) {
+            currentTaskInfo = { blockIdx, weekIdx, dayName, taskId };
+            taskForm.reset();
+            document.getElementById('modal-title').textContent = taskId ? 'Editar Tarea' : 'Añadir Tarea';
+            if (taskId) {
+                const task = plannerData[blockIdx].weeks[weekIdx].days.find(d => d.dayName === dayName).tasks.find(t => t.id === taskId);
+                if (task) {
+                    Object.keys(task).forEach(key => { const el = taskForm.querySelector(`#task-${key}`); if (el) el.value = task[key]; });
+                }
+            }
+            taskModal.classList.add('active');
+        }
+
+        function closeModal() { taskModal.classList.remove('active'); }
+
+        function saveTask(e) {
+            e.preventDefault();
+            const { blockIdx, weekIdx, dayName, taskId } = currentTaskInfo;
+            const day = plannerData[blockIdx].weeks[weekIdx].days.find(d => d.dayName === dayName);
+            const taskData = {
+                id: taskId || `task-${Date.now()}`,
+                time: taskForm.querySelector('#task-time').value,
+                description: taskForm.querySelector('#task-desc').value,
+                priority: taskForm.querySelector('#task-priority').value,
+                status: taskForm.querySelector('#task-status').value,
+            };
+            if (taskId) {
+                const taskIndex = day.tasks.findIndex(t => t.id === taskId);
+                if (taskIndex > -1) day.tasks[taskIndex] = taskData;
+            } else { day.tasks.push(taskData); }
+            saveData();
+            closeModal();
+            showDailyView(blockIdx, weekIdx);
+        }
+
         function quickCompleteTask(blockIdx, weekIdx, dayName, taskId) {
             const task = plannerData[blockIdx].weeks[weekIdx].days.find(d => d.dayName === dayName).tasks.find(t => t.id === taskId);
-            if(task) {
+            if (task) {
                 task.status = 'completada';
                 saveData();
-                showDailyView(blockIdx, weekIdx); // Refresca la vista actual
+                showDailyView(blockIdx, weekIdx);
             }
         }
-        function openTaskModal(blockIdx, weekIdx, dayName, taskId = null) { /* ... (sin cambios) ... */ }
-        function closeModal() { /* ... (sin cambios) ... */ }
-        function saveTask() { /* ... (sin cambios) ... */ }
-        function deleteTask(blockIdx, weekIdx, dayName, taskId) { /* ... (sin cambios) ... */ }
 
-        // --- MANEJADORES DE EVENTOS ---
-        function addAccordionListeners() { /* ... (sin cambios) ... */ }
-        
-        document.getElementById('show-blocks-view-btn').addEventListener('click', () => switchView('blocks-view'));
-        document.getElementById('show-all-tasks-btn').addEventListener('click', () => {
-            switchView('all-tasks-view');
-            renderAllTasks();
-        });
-        document.getElementById('back-to-blocks-btn').addEventListener('click', () => {
-            switchView('blocks-view');
-            renderBlocks(); // Re-renderizar para actualizar contadores de tareas
-        });
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('btn-primary', 'btn-secondary'));
-                e.target.classList.replace('btn-secondary', 'btn-primary');
-                renderAllTasks(e.target.dataset.filter);
-            });
-        });
-        
-        // --- INICIALIZACIÓN ---
-        function init() {
-            window.app = { openTaskModal, deleteTask, quickCompleteTask }; // <-- Añadimos la nueva función
-            // Dupliqué funciones que no cambian por brevedad, pero en el código real se incluirían.
-            // Esta sección es para asegurar que las funciones completas de la versión anterior estén aquí.
-            const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-            window.app.loadData = function() {
-                const savedData = localStorage.getItem('annualPlanner');
-                if (savedData) { plannerData = JSON.parse(savedData); }
-                else {
-                    plannerData = Array.from({ length: 4 }, (_, b) => ({
-                        name: `Bloque ${b + 1}`,
-                        weeks: Array.from({ length: 12 }, (_, w) => ({
-                            week: w + 1, objective: '',
-                            days: weekDays.map(d => ({ dayName: d, tasks: [] }))
-                        }))
-                    }));
-                }
-            };
-            window.app.saveData = function() { localStorage.setItem('annualPlanner', JSON.stringify(plannerData)); };
-            window.app.openTaskModal = function(b, w, d, tId = null) {
-                currentTaskInfo = { blockIdx: b, weekIdx: w, dayName: d, taskId: tId };
-                document.getElementById('task-form').reset();
-                if(tId){
-                    document.getElementById('modal-title').textContent = 'Editar Tarea';
-                    const task = plannerData[b].weeks[w].days.find(day => day.dayName === d).tasks.find(t => t.id === tId);
-                    Object.keys(task).forEach(key => { const el = document.getElementById(`task-${key}`); if(el) el.value = task[key]; });
-                } else { document.getElementById('modal-title').textContent = 'Añadir Tarea'; }
-                document.getElementById('task-modal').classList.add('active');
-            };
-            window.app.closeModal = function() { document.getElementById('task-modal').classList.remove('active'); };
-            window.app.saveTask = function() {
-                const {blockIdx, weekIdx, dayName, taskId} = currentTaskInfo;
+        function deleteTask(blockIdx, weekIdx, dayName, taskId) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
                 const day = plannerData[blockIdx].weeks[weekIdx].days.find(d => d.dayName === dayName);
-                const taskData = {id: taskId || `task-${Date.now()}`, time: document.getElementById('task-time').value, description: document.getElementById('task-desc').value, priority: document.getElementById('task-priority').value, status: document.getElementById('task-status').value};
-                if(taskId) { const i = day.tasks.findIndex(t => t.id === taskId); day.tasks[i] = taskData; }
-                else { day.tasks.push(taskData); }
-                window.app.saveData(); window.app.closeModal(); showDailyView(blockIdx, weekIdx);
-            };
-            window.app.deleteTask = function(b, w, d, tId) {
-                if (!confirm('¿Seguro?')) return;
-                const day = plannerData[b].weeks[w].days.find(day => day.dayName === d);
-                day.tasks = day.tasks.filter(t => t.id !== tId);
-                window.app.saveData(); showDailyView(b, w);
-            };
-            document.getElementById('modal-save-btn').addEventListener('click', window.app.saveTask);
-            document.getElementById('modal-cancel-btn').addEventListener('click', window.app.closeModal);
-            document.getElementById('task-modal').addEventListener('click', e => { if(e.target === document.getElementById('task-modal')) window.app.closeModal(); });
-            window.app.addAccordionListeners = function() {
-                document.querySelectorAll('.block-header').forEach(h => {
-                    h.addEventListener('click', () => {
-                        const wasActive = h.classList.contains('active');
-                        document.querySelectorAll('.block-header').forEach(x => x.classList.remove('active'));
-                        document.querySelectorAll('.weeks-grid').forEach(g => g.classList.remove('active'));
-                        if (!wasActive) { h.classList.add('active'); document.getElementById(`weeks-grid-${h.dataset.blockIndex}`).classList.add('active'); }
-                    });
-                });
-            };
+                if (day) {
+                    day.tasks = day.tasks.filter(t => t.id !== taskId);
+                    saveData();
+                    showDailyView(blockIdx, weekIdx);
+                }
+            }
+        }
 
-            // Ejecución inicial
-            window.app.loadData();
-            if (localStorage.getItem('darkMode') === 'enabled') { setDarkMode(true); } else { setDarkMode(false); }
+        // --- INICIALIZACIÓN Y MANEJADORES DE EVENTOS ---
+        function init() {
+            window.app = { openTaskModal, deleteTask, quickCompleteTask }; // Exponer funciones para onclick
+            
+            document.getElementById('show-blocks-view-btn').addEventListener('click', () => { switchView('blocks-view'); renderBlocks(); });
+            document.getElementById('show-all-tasks-btn').addEventListener('click', () => { switchView('all-tasks-view'); renderAllTasks(); });
+            document.getElementById('back-to-blocks-btn').addEventListener('click', () => { switchView('blocks-view'); renderBlocks(); });
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.replace('btn-primary', 'btn-secondary'));
+                    e.target.classList.replace('btn-secondary', 'btn-primary');
+                    renderAllTasks(e.target.dataset.filter);
+                });
+            });
+            
+            taskForm.addEventListener('submit', saveTask);
+            document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+            taskModal.addEventListener('click', (e) => { if (e.target === taskModal) closeModal(); });
+
+            darkModeToggle.addEventListener('change', () => setDarkMode(darkModeToggle.checked));
+            loadData();
+            setDarkMode(localStorage.getItem('darkMode') === 'enabled');
             renderBlocks();
             switchView('blocks-view');
         }
